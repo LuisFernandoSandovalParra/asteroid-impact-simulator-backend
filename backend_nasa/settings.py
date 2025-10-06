@@ -123,6 +123,39 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Configuración CORS para tu frontend
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",  # React dev server
+    "http://127.0.0.1:3000",
+    "https://asteroid-impact-simulator.up.railway.app"
+
+]
+
+# O si quieres permitir todos los orígenes (solo desarrollo)
+CORS_ALLOW_ALL_ORIGINS = True  # Cambiar a False en producción
+
+# Métodos permitidos
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+# Headers permitidos
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
 
 # Configuración CSRF para desarrollo
 CSRF_TRUSTED_ORIGINS = [
@@ -130,7 +163,9 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:3000",
     "http://localhost:8000", 
     "http://127.0.0.1:8000",
-    "https://asteroid-impact-simulator.up.railway.app/"
+    "https://asteroid-impact-simulator.up.railway.app/",
+    "https://*.up.railway.app",
+    "https://*.railway.app",
 ]
 
 # Deshabilitar CSRF para APIs (solo desarrollo)
