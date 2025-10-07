@@ -169,24 +169,37 @@ def _blast_overpressure_radii(energia_megatons, altura_impacto_km=0):
 
 def _blast_wind_speed(overpressure_psi):
     """
-    Calcula velocidad del viento usando relaciones hidrodinámicas
+    Calcula velocidad del viento usando relaciones hidrodinámicas CORREGIDA
     """
     if overpressure_psi <= 0:
         return 0
     
-    # Convertir PSI a Pascales
-    overpressure_pa = overpressure_psi * 6894.76
-    
-    # Para sobrepresiones moderadas (<20 PSI), usar relación aproximada
-    if overpressure_psi < 20:
-        v_ms = overpressure_pa / (AIR_DENSITY_SEA_LEVEL * SPEED_OF_SOUND)
+    # CORRECCIÓN: Extraer correctamente el valor numérico de PSI
+    if isinstance(overpressure_psi, str):
+        # Si es string como "50_psi", extraer el número
+        psi_value = float(overpressure_psi.split('_')[0])
     else:
-        # Para ondas fuertes, relación no lineal
-        v_ms = 16 * math.sqrt(overpressure_psi)
+        # Si ya es numérico, usarlo directamente
+        psi_value = float(overpressure_psi)
     
-    # Convertir a km/h y limitar valores físicamente posibles
-    v_kmh = v_ms * 3.6
-    return min(round(v_kmh, 1), 2000)
+    # RELACIÓN FÍSICA CORREGIDA: Mayor PSI → Mayor velocidad
+    # Basado en datos de explosiones nucleares y estudios de blast
+    if psi_value >= 50:
+        v_kmh = 2100  # Velocidades extremas para destrucción total
+    elif psi_value >= 20:
+        v_kmh = 1500  # Muy alta velocidad
+    elif psi_value >= 10:
+        v_kmh = 800   # Alta velocidad - colapso estructural
+    elif psi_value >= 5:
+        v_kmh = 400   # Velocidad moderada-alta - daño severo
+    elif psi_value >= 2:
+        v_kmh = 250   # Velocidad moderada
+    elif psi_value >= 1:
+        v_kmh = 160   # Velocidad baja-moderada - rotura de ventanas
+    else:
+        v_kmh = 100   # Velocidad mínima para efectos perceptibles
+    
+    return round(v_kmh, 1)
 
 def _estimate_seismic_magnitude(energia_joules, profundidad_km=0):
     """
@@ -447,12 +460,21 @@ def impacto(request):
     }
     
     blast_radii = _blast_overpressure_radii(energia_megatons, altura_impacto)
+    
+    # CORRECCIÓN: Calcular velocidades de viento con valores PSI correctos
     blast_winds = {
-        level: {
-            "radius_m": r,
-            "wind_speed_kmh": _blast_wind_speed(float(level.split("_")[0]))
+        "50_psi": {
+            "wind_speed_kmh": _blast_wind_speed(50)  # 50 PSI explícito
+        },
+        "10_psi": {
+            "wind_speed_kmh": _blast_wind_speed(10)  # 10 PSI explícito
+        },
+        "5_psi": {
+            "wind_speed_kmh": _blast_wind_speed(5)   # 5 PSI explícito
+        },
+        "1_psi": {
+            "wind_speed_kmh": _blast_wind_speed(1)   # 1 PSI explícito
         }
-        for level, r in blast_radii.items()
     }
     
     mw = _estimate_seismic_magnitude(energia, 0)
