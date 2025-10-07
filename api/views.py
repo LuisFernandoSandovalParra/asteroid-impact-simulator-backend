@@ -149,14 +149,15 @@ def _blast_wind_speed(overpressure_psi, energia_megatons):
     """
     Calcula velocidad del viento DINÁMICAMENTE basado en presión y energía
     """
-    if overpressure_psi <= 0 or energia_megatons <= 0:
-        return 0
-    
-    # Extraer valor PSI numérico
+    # Extraer valor PSI numérico primero
     if isinstance(overpressure_psi, str):
         psi_value = float(overpressure_psi.split('_')[0])
     else:
         psi_value = float(overpressure_psi)
+    
+    # Ahora verificar condiciones
+    if psi_value <= 0 or energia_megatons <= 0:
+        return 0
     
     # BASE: Velocidades máximas teóricas para diferentes niveles de PSI
     velocidades_base = {
@@ -178,9 +179,6 @@ def _blast_wind_speed(overpressure_psi, energia_megatons):
         factor_energia = 1.0 + min(0.5, (energia_megatons - 100) / 1000)  # 100% a 150%
     else:
         factor_energia = 1.0
-    
-    # FACTOR DE ALTURA: Airbursts producen diferentes patrones de viento
-    # (Este factor se aplicará externamente basado en altura_impacto)
     
     # Calcular velocidad final
     velocidad_final = velocidad_base * factor_energia
