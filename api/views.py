@@ -17,9 +17,9 @@ AIR_DENSITY_SEA_LEVEL = 1.225  # kg/m³
 SPEED_OF_SOUND = 343  # m/s
 
 # Factores de escala para visualización REALISTA
-THERMAL_SCALING_FACTOR = 0.6    # Aumentado de 0.15 a 0.6 (60% del tamaño real)
-BLAST_SCALING_FACTOR = 0.8      # Aumentado de 0.25 a 0.8 (80% del tamaño real)
-FIREBALL_SCALING_FACTOR = 0.7   # Aumentado de 0.4 a 0.7 (70% del tamaño real)
+THERMAL_SCALING_FACTOR = 0.6
+BLAST_SCALING_FACTOR = 0.8
+FIREBALL_SCALING_FACTOR = 0.7
 
 # ------------------ Modelos Científicos Basados en Referencias ------------------
 
@@ -31,10 +31,9 @@ def _calculate_kinetic_energy(diametro, densidad, velocidad):
     """
     Calcula energía cinética con corrección de unidades
     """
-    # Asegurar que la velocidad esté en m/s
-    if velocidad > 1000:  # Probablemente en m/s ya
+    if velocidad > 1000:
         velocidad_ms = velocidad
-    else:  # Probablemente en km/s
+    else:
         velocidad_ms = velocidad * 1000
     
     radio = diametro / 2.0
@@ -56,23 +55,20 @@ def _crater_metrics(diametro_proy_m, energia_megatons, angulo_impacto, densidad_
     if energia_megatons <= 0:
         return diametro_proy_m * 8, diametro_proy_m * 1.6
     
-    # Convertir a joules para cálculos
     energia_joules = energia_megatons * JOULES_PER_MEGATON
     
-    # Parámetros del objetivo basados en tipo
     if target_type == "water":
-        densidad_objetivo = 1000  # kg/m³
-        resistencia_objetivo = 0.1e6  # Pa (agua)
-        K1, mu = 1.5, 0.55  # Parámetros para agua
+        densidad_objetivo = 1000
+        resistencia_objetivo = 0.1e6
+        K1, mu = 1.5, 0.55
     else:
-        densidad_objetivo = 2500  # kg/m³
-        resistencia_objetivo = 1e7  # Pa (roca sedimentaria)
-        K1, mu = 1.2, 0.4  # Parámetros para roca
+        densidad_objetivo = 2500
+        resistencia_objetivo = 1e7
+        K1, mu = 1.2, 0.4
     
     angulo_rad = math.radians(angulo_impacto)
     correccion_angulo = math.sin(angulo_rad) ** 0.5
     
-    # Cálculo del cráter transitorio (modelo de escala π)
     diametro_transitorio = (
         K1 * 
         (densidad_proy / densidad_objetivo) ** (1/3) * 
@@ -80,13 +76,8 @@ def _crater_metrics(diametro_proy_m, energia_megatons, angulo_impacto, densidad_
         correccion_angulo
     )
     
-    # Conversión a cráter simple final (colapso gravitacional)
     diametro_final = 1.3 * diametro_transitorio
-    
-    # Profundidad basada en relaciones observacionales
     profundidad_final = diametro_final * 0.22
-    
-    # Mínimo físico basado en el proyectil
     diametro_minimo = diametro_proy_m * 8
     diametro_final = max(diametro_final, diametro_minimo)
     
@@ -94,54 +85,45 @@ def _crater_metrics(diametro_proy_m, energia_megatons, angulo_impacto, densidad_
 
 def _fireball_radius_m(energia_megatons, altura_impacto_km=0):
     """
-    Radio de la bola de fuego CON RELACIONES FÍSICAS CORRECTAS
+    Radio de la bola de fuego
     """
     if energia_megatons <= 0:
         return 0
     
-    # RELACIÓN FÍSICA: Fireball ~ 2-5x el radio del cráter
-    # Basado en observaciones de impactos y explosiones nucleares
     if altura_impacto_km > 5:
-        coeficiente = 180  # Aumentado de 120 - Para airbursts
+        coeficiente = 180
     else:
-        coeficiente = 120  # Aumentado de 80 - Para surface impacts
+        coeficiente = 120
     
     radio_fireball = coeficiente * (energia_megatons ** (1/3))
-    
-    # APLICAR FACTOR DE ESCALA MEJORADO
     radio_fireball *= FIREBALL_SCALING_FACTOR
     
     return radio_fireball
 
 def _thermal_radiation_radius_m(energia_megatons, tipo_lesion="lethal"):
     """
-    Calcula radios para efectos de radiación térmica CON RELACIONES FÍSICAS CORRECTAS
+    Calcula radios para efectos de radiación térmica
     """
     if energia_megatons <= 0:
         return 0
     
-    # Diferentes umbrales de fluencia térmica (cal/cm²)
     umbrales = {
-        "lethal": 25,      # Muerte por quemaduras (25 cal/cm²)
-        "burns_3rd": 15,   # Quemaduras de 3er grado
-        "burns_2nd": 8,    # Quemaduras de 2do grado  
-        "burns_1st": 5,    # Quemaduras de 1er grado
-        "ignition": 10     # Ignición de materiales
+        "lethal": 25,
+        "burns_3rd": 15,
+        "burns_2nd": 8,
+        "burns_1st": 5,
+        "ignition": 10
     }
     
     fluencia_objetivo = umbrales.get(tipo_lesion, 25)
-
-    # Los efectos térmicos son mucho más extensos que el cráter
-    radio_termico = 450 * math.sqrt(energia_megatons) * (25/fluencia_objetivo)**0.5  # Aumentado de 200 a 450
-    
-    # APLICAR FACTOR DE ESCALA MEJORADO
+    radio_termico = 450 * math.sqrt(energia_megatons) * (25/fluencia_objetivo)**0.5
     radio_termico *= THERMAL_SCALING_FACTOR
     
     return radio_termico
 
 def _blast_overpressure_radii(energia_megatons, altura_impacto_km=0):
     """
-    Calcula radios de sobrepresión CON RELACIONES FÍSICAS CORRECTAS
+    Calcula radios de sobrepresión
     """
     if energia_megatons <= 0:
         return {"50_psi": 0, "10_psi": 0, "5_psi": 0, "1_psi": 0}
@@ -151,72 +133,74 @@ def _blast_overpressure_radii(energia_megatons, altura_impacto_km=0):
     else:
         factor_altura = 1.0
     
-    # RADIO BASE CORREGIDO - Los efectos blast son los más extensos
-    radio_base = 2500 * (energia_megatons ** (1/3)) * factor_altura  # Aumentado de 800 a 2500
-    
-    # APLICAR FACTOR DE ESCALA MEJORADO
+    radio_base = 2500 * (energia_megatons ** (1/3)) * factor_altura
     radio_base *= BLAST_SCALING_FACTOR
     
-    # RELACIONES EMPÍRICAS - Los efectos de baja presión son más extensos
     relaciones_presion = {
-        "50_psi": 0.12,   # Edificios de concreto destruidos (reducido ligeramente)
-        "10_psi": 0.30,   # Edificios residenciales colapsan (aumentado de 0.25)
-        "5_psi": 0.50,    # Daño estructural severo (aumentado de 0.40)
-        "1_psi": 1.0      # Ventanas rotas (mantenido)
+        "50_psi": 0.12,
+        "10_psi": 0.30,
+        "5_psi": 0.50,
+        "1_psi": 1.0
     }
     
     return {psi: radio_base * factor for psi, factor in relaciones_presion.items()}
 
-def _blast_wind_speed(overpressure_psi):
+def _blast_wind_speed(overpressure_psi, energia_megatons):
     """
-    Calcula velocidad del viento usando relaciones hidrodinámicas CORREGIDA
+    Calcula velocidad del viento DINÁMICAMENTE basado en presión y energía
     """
-    if overpressure_psi <= 0:
+    if overpressure_psi <= 0 or energia_megatons <= 0:
         return 0
     
-    # CORRECCIÓN: Extraer correctamente el valor numérico de PSI
+    # Extraer valor PSI numérico
     if isinstance(overpressure_psi, str):
-        # Si es string como "50_psi", extraer el número
         psi_value = float(overpressure_psi.split('_')[0])
     else:
-        # Si ya es numérico, usarlo directamente
         psi_value = float(overpressure_psi)
     
-    # RELACIÓN FÍSICA CORREGIDA: Mayor PSI → Mayor velocidad
-    # Basado en datos de explosiones nucleares y estudios de blast
-    if psi_value >= 50:
-        v_kmh = 2100  # Velocidades extremas para destrucción total
-    elif psi_value >= 20:
-        v_kmh = 1500  # Muy alta velocidad
-    elif psi_value >= 10:
-        v_kmh = 800   # Alta velocidad - colapso estructural
-    elif psi_value >= 5:
-        v_kmh = 400   # Velocidad moderada-alta - daño severo
-    elif psi_value >= 2:
-        v_kmh = 250   # Velocidad moderada
-    elif psi_value >= 1:
-        v_kmh = 160   # Velocidad baja-moderada - rotura de ventanas
-    else:
-        v_kmh = 100   # Velocidad mínima para efectos perceptibles
+    # BASE: Velocidades máximas teóricas para diferentes niveles de PSI
+    velocidades_base = {
+        50: 2100,  # Máxima velocidad para destrucción total
+        10: 800,   # Alta velocidad para colapso estructural
+        5: 400,    # Velocidad moderada-alta para daño severo
+        1: 160     # Velocidad baja-moderada para rotura de ventanas
+    }
     
-    return round(v_kmh, 1)
+    # Obtener velocidad base para este nivel de PSI
+    velocidad_base = velocidades_base.get(psi_value, 100)
+    
+    # FACTOR DE ENERGÍA: Ajustar según la energía del impacto
+    # Para energías muy pequeñas (< 0.1 MT), reducir velocidad
+    # Para energías muy grandes (> 100 MT), aumentar velocidad ligeramente
+    if energia_megatons < 0.1:
+        factor_energia = 0.3 + (energia_megatons / 0.1) * 0.7  # 30% a 100%
+    elif energia_megatons > 100:
+        factor_energia = 1.0 + min(0.5, (energia_megatons - 100) / 1000)  # 100% a 150%
+    else:
+        factor_energia = 1.0
+    
+    # FACTOR DE ALTURA: Airbursts producen diferentes patrones de viento
+    # (Este factor se aplicará externamente basado en altura_impacto)
+    
+    # Calcular velocidad final
+    velocidad_final = velocidad_base * factor_energia
+    
+    return round(velocidad_final, 1)
 
 def _estimate_seismic_magnitude(energia_joules, profundidad_km=0):
     """
-    Calcula magnitud sísmica usando relación energía-magnitud mejorada
+    Calcula magnitud sísmica usando relación energía-magnitud
     """
     if energia_joules <= 0:
         return 0.0
     
-    # Eficiencia sísmica depende del mecanismo y profundidad
     if profundidad_km > 1:
-        eficiencia = 5e-4  # Impactos profundos más eficientes
+        eficiencia = 5e-4
     else:
-        eficiencia = 1e-4  # Impactos superficiales
+        eficiencia = 1e-4
         
     energia_sismica = eficiencia * energia_joules
     
-    # Relación energía-magnitud (Gutenberg-Richter moderna)
     if energia_sismica > 0:
         mw = (math.log10(energia_sismica) - 4.8) / 1.5
     else:
@@ -226,9 +210,8 @@ def _estimate_seismic_magnitude(energia_joules, profundidad_km=0):
 
 def estimate_seismic_effects(mw, tipo_suelo="rock"):
     """
-    Estima intensidades sísmicas con distancias DINÁMICAS pero asegurando visibilidad
+    Estima intensidades sísmicas
     """
-    # DISTANCIAS DINÁMICAS basadas en la magnitud, pero con MÍNIMOS para visibilidad
     if mw >= 8.0:
         distances_km = [50, 200, 500, 1000, 2000, 5000]
     elif mw >= 7.0:
@@ -240,19 +223,15 @@ def estimate_seismic_effects(mw, tipo_suelo="rock"):
     elif mw >= 4.0:
         distances_km = [5, 15, 40, 80, 150, 250]
     else:
-        # para magnitudes bajas se usa distancias mínimas para visibilidad
         distances_km = [2, 5, 10, 20, 40, 80]
     
-    # Se filtra para asegurar que haya al menos una distancia > 1km para visibilidad
     distances_km = [d for d in distances_km if d >= 1]
     
-    # SI TODAS LAS DISTANCIAS SON MUY PEQUEÑAS, agregar una mínima para visibilidad
     if max(distances_km) < 5:
-        distances_km.append(5)  # Mínimo 5km para visibilidad
+        distances_km.append(5)
     
     results = {}
     
-    # Factores de amplificación por tipo de suelo
     amplificacion_suelo = {
         "rock": 1.0,
         "hard_soil": 1.3,
@@ -265,16 +244,10 @@ def estimate_seismic_effects(mw, tipo_suelo="rock"):
         if d < 1:
             d = 1
         
-        # Modelo de atenuación simplificado (Atkinson & Boore 2006)
-        R = math.sqrt(d**2 + 10**2)  # Distancia hipocentral aproximada
-        
-        # Calcular PGA (Peak Ground Acceleration) en %g
-        log10_pga = (0.5 + 0.4 * mw - 
-                    1.0 * math.log10(R) - 
-                    0.002 * R)
+        R = math.sqrt(d**2 + 10**2)
+        log10_pga = (0.5 + 0.4 * mw - 1.0 * math.log10(R) - 0.002 * R)
         pga = (10 ** log10_pga) * factor_suelo
         
-        # Convertir PGA a MMI (Wald et al. 1999)
         if pga >= 1.0: mmi = "IX-X"
         elif pga >= 0.5: mmi = "VIII"
         elif pga >= 0.3: mmi = "VII"
@@ -311,24 +284,19 @@ def _get_mmi_description(mmi):
 
 def _tsunami_effects(energia_megatons, profundidad_agua_m, distancia_costa_km):
     """
-    Evalúa efectos de tsunami basado en energía del impacto y condiciones locales
+    Evalúa efectos de tsunami
     """
     if energia_megatons <= 1:
         return {"likely": False, "max_wave_height_m": 0, "notes": "Insufficient energy for significant tsunami"}
     
-    # Altura de ola inicial aproximada
     if profundidad_agua_m > 1000:
-        # Agua profunda - mayor eficiencia
         altura_onda = 0.02 * (energia_megatons ** 0.5)
     else:
-        # Agua poco profunda - menor eficiencia  
         altura_onda = 0.01 * (energia_megatons ** 0.5)
     
-    # Amplificación costera (run-up)
     run_up_factor = 2.0
     altura_maxima_costa = altura_onda * run_up_factor
     
-    # Clasificación de efectos
     if energia_megatons > 100:
         clasificacion = "Devastating regional tsunami"
     elif energia_megatons > 10:
@@ -415,9 +383,8 @@ def impacto(request):
                 return JsonResponse({"error": f"Asteroide '{nombre_asteroide}' no encontrado."}, status=404)
 
             diametro = encontrado.get("estimated_diameter", {}).get("meters", {}).get("estimated_diameter_max")
-            # Convertir velocidad de km/h a m/s
             velocidad_km_h = float(encontrado.get("close_approach_data", [])[0].get("relative_velocity", {}).get("kilometers_per_hour"))
-            velocidad = velocidad_km_h * 1000 / 3600  # km/h → m/s
+            velocidad = velocidad_km_h * 1000 / 3600
             angulo = 45
             densidad = 3000
         except Exception as e:
@@ -425,8 +392,7 @@ def impacto(request):
     else:
         try:
             diametro = float(request.GET.get("diametro", 100))
-            velocidad_input = float(request.GET.get("velocidad", 17))  # km/s del frontend
-            # Convertir km/s a m/s
+            velocidad_input = float(request.GET.get("velocidad", 17))
             velocidad = velocidad_input * 1000
             angulo = float(request.GET.get("angulo", 45))
             densidad = float(request.GET.get("densidad", 3000))
@@ -434,7 +400,7 @@ def impacto(request):
             return JsonResponse({"error": f"Parámetros inválidos: {e}"}, status=400)
         nombre_asteroide = "Custom input"
 
-    # --- cálculos físicos MEJORADOS ---
+    # --- cálculos físicos ---
     masa, energia, velocidad_ms = _calculate_kinetic_energy(diametro, densidad, velocidad)
     energia_megatons = _energy_megatons(energia)
 
@@ -442,16 +408,15 @@ def impacto(request):
     lat = request.GET.get("lat", None)
     lon = request.GET.get("lon", None)
     target = request.GET.get("target", "land")
-    altura_impacto = float(request.GET.get("altura", 0))  # km sobre superficie
+    altura_impacto = float(request.GET.get("altura", 0))
 
-    # --- cálculos de efectos CON RELACIONES FÍSICAS CORRECTAS ---
+    # --- cálculos de efectos ---
     crater_diameter_m, crater_depth_m = _crater_metrics(
         diametro, energia_megatons, angulo, densidad, target
     )
     
     fireball_radius_m = _fireball_radius_m(energia_megatons, altura_impacto)
     
-    # Múltiples efectos térmicos CON RELACIONES CORRECTAS
     thermal_effects_m = {
         "lethal": _thermal_radiation_radius_m(energia_megatons, "lethal"),
         "burns_3rd": _thermal_radiation_radius_m(energia_megatons, "burns_3rd"),
@@ -461,19 +426,19 @@ def impacto(request):
     
     blast_radii = _blast_overpressure_radii(energia_megatons, altura_impacto)
     
-    # CORRECCIÓN: Calcular velocidades de viento con valores PSI correctos
+    # CORRECCIÓN: Velocidades de viento DINÁMICAS basadas en energía
     blast_winds = {
         "50_psi": {
-            "wind_speed_kmh": _blast_wind_speed(50)  # 50 PSI explícito
+            "wind_speed_kmh": _blast_wind_speed("50_psi", energia_megatons)
         },
         "10_psi": {
-            "wind_speed_kmh": _blast_wind_speed(10)  # 10 PSI explícito
+            "wind_speed_kmh": _blast_wind_speed("10_psi", energia_megatons)
         },
         "5_psi": {
-            "wind_speed_kmh": _blast_wind_speed(5)   # 5 PSI explícito
+            "wind_speed_kmh": _blast_wind_speed("5_psi", energia_megatons)
         },
         "1_psi": {
-            "wind_speed_kmh": _blast_wind_speed(1)   # 1 PSI explícito
+            "wind_speed_kmh": _blast_wind_speed("1_psi", energia_megatons)
         }
     }
     
